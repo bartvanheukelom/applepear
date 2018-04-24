@@ -45,7 +45,7 @@ def compare():
     global lines, selLine
 
     # compare the dirs
-    root = dirdiff.runComparison(compareDirs, compareDirNames, shouldInclude, add_ignore)
+    root = dirdiff.Compearison(compareDirs, compareDirNames, shouldInclude, add_ignore).root
 
     # flatten the result to a list of lines
     # preserve previous selection somewhat
