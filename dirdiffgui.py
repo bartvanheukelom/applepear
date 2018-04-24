@@ -140,21 +140,33 @@ def cursesloop(win):
 
                             def run_outside_curses():
 
-                                if cmd[0] in ['cat', 'meld', 'diff']: approval = True
+                                # some commands open new graphical windows
+                                newwindow = cmd[0] == 'meld'
+
+                                # get approval if required
+                                if newwindow or cmd[0] in ['cat', 'diff']:
+                                    approval = True
                                 else:
                                     print('Going to run command:')
-                                    for c in cmd: print(c)
+                                    for c in cmd:
+                                        print(c)
                                     approval = input('Run y/n?') == 'y'
+                                    if not approval:
+                                        print('Aborted!')
 
+                                # run the command if approval gained
                                 if approval:
+                                    if newwindow:
+                                        print('Close ' + cmd[0] + ' window to return to main interface...')
                                     subprocess.run(cmd)
-                                else:
-                                    print('Aborted!')
 
-                                if cmd[0] != 'meld':
+                                # let user read the output before returning
+                                if not newwindow:
                                     print('Press enter to return to main interface...')
                                     input()
+                                print('------------------------------')
 
+                                # refresh
                                 compare()
 
                             return run_outside_curses
