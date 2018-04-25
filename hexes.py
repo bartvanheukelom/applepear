@@ -2,6 +2,7 @@
 
 import curses
 
+
 class TextBox:
 
     def __init__(self):
@@ -21,6 +22,7 @@ class TextBox:
             else:
                 self.text += chr(ch)
         return False
+
 
 class TextArea:
 
@@ -42,7 +44,7 @@ class TextArea:
             while True:
 
                 if yy >= y + height:
-                    win.addnstr(y+height-1, x, 'Too long text!!', width, curses.A_REVERSE)
+                    win.addnstr(y + height - 1, x, 'Too long text!!', width, curses.A_REVERSE)
                     break
 
                 if first:
@@ -50,19 +52,19 @@ class TextArea:
                     first = False
                 else:
                     pref = ''
-                win.addnstr(yy, x, pref.rjust(leftpad-1), leftpad-1, curses.A_REVERSE | dim)
+                win.addnstr(yy, x, pref.rjust(leftpad - 1), leftpad - 1, curses.A_REVERSE | dim)
 
                 # util.log('ll', len(ll), ll)
-                theresMore = len(ll) > width-leftpad
-                if theresMore:
-                    rl = ll[:width-leftpad]
-                    ll = ll[width-leftpad:]
+                more = len(ll) > width - leftpad
+                if more:
+                    rl = ll[:width - leftpad]
+                    ll = ll[width - leftpad:]
                 else:
                     rl = ll
                 # util.log('rl', rl)
-                win.addnstr(yy, x+leftpad, rl, width-leftpad)
+                win.addnstr(yy, x + leftpad, rl, width - leftpad)
                 yy += 1
-                if not theresMore: break
+                if not more: break
 
             if yy >= y + height:
                 break
@@ -83,34 +85,35 @@ class TextArea:
             self.text[-1] += chr(ch)
 
 
-def fill_line(win, y, x, width, attr=0, char=' '):
+def fill_line(win, y: int, x: int, width: int, attr=0, char: str=' '):
     fill_rect(win, y, x, 1, width, attr=attr, char=char)
 
-def fill_rect(win, top, left, height, width, attr=0, char=' '):
-    for x in range(left, left+width):
-        for y in range(top, top+height):
+
+def fill_rect(win, top: int, left: int, height: int, width: int, attr=0, char: str=' '):
+    for x in range(left, left + width):
+        for y in range(top, top + height):
             win.addch(y, x, char, attr)
 
-def border(win, top, left, height, width, header='', attr=0, clear=False):
 
+def border(win, top, left, height, width, header='', attr=0, clear=False):
     if clear:
         fill_rect(win, top, left, height, width)
 
     # horizontal lines
-    for x in range(left+1, left+width-1):
+    for x in range(left + 1, left + width - 1):
         win.addch(top, x, curses.ACS_HLINE, attr)
-        win.addch(top+height-1, x, curses.ACS_HLINE, attr)
+        win.addch(top + height - 1, x, curses.ACS_HLINE, attr)
     # vertical lines
-    for y in range(top+1, top+height-1):
+    for y in range(top + 1, top + height - 1):
         win.addch(y, left, curses.ACS_VLINE, attr)
-        win.addch(y, left+width-1, curses.ACS_VLINE, attr)
+        win.addch(y, left + width - 1, curses.ACS_VLINE, attr)
     # corners
     win.addch(top, left, curses.ACS_ULCORNER, attr)
-    win.addch(top, left+width-1, curses.ACS_URCORNER, attr)
-    win.addch(top+height-1, left, curses.ACS_LLCORNER, attr)
-    win.addch(top+height-1, left+width-1, curses.ACS_LRCORNER, attr)
+    win.addch(top, left + width - 1, curses.ACS_URCORNER, attr)
+    win.addch(top + height - 1, left, curses.ACS_LLCORNER, attr)
+    win.addch(top + height - 1, left + width - 1, curses.ACS_LRCORNER, attr)
 
-    #header
+    # header
     if header != '':
         hw = len(header)
-        win.addnstr(top, left + int((width-hw)/2), header, width-2, attr)
+        win.addnstr(top, left + int((width - hw) / 2), header, width - 2, attr)

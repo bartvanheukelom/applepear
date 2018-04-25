@@ -1,22 +1,24 @@
 import os
 import hashlib
 
+from typing import List, Callable, Set, Dict, Any, Tuple
+
 
 class TreeNode:
     def __init__(self):
-        self.path = None
+        self.path: str = None
+        self.differences: Set[str] = set()
+        self.existsIn: Set[int] = set()
+
         # TODO actions probably belong in dirdiffgui
-        self.actions = []
-        self.differences = set()
-        self.existsIn = set()
-        self.isDir = isinstance(self, TreeDir)
+        self.actions: List[Tuple[str, List[str]]] = []
 
 
 class TreeDir(TreeNode):
     def __init__(self):
         super().__init__()
-        self.subdirs = dict()
-        self.files = dict()
+        self.subdirs: Dict[str, TreeDir] = dict()
+        self.files: Dict[str, TreeFile] = dict()
 
 
 class TreeFile(TreeNode):
@@ -24,11 +26,11 @@ class TreeFile(TreeNode):
         super().__init__()
 
 
-def path_per_cd(name, dirs):
+def path_per_cd(name: str, dirs: List[str]) -> List[str]:
     return [cd + '/' + name for cd in dirs]
 
 
-def hashfiles(files):
+def hashfiles(files: List[str]) -> str:
     h = hashlib.sha256()
     for file in files:
         with open(file, 'rb', buffering=0) as f:
@@ -37,7 +39,7 @@ def hashfiles(files):
     return h.hexdigest()
 
 
-def getcontents(fn):
+def getcontents(fn: str) -> bytes:
     with open(fn, 'rb') as of:
         return of.read()
 
@@ -45,7 +47,9 @@ def getcontents(fn):
 # the typo is intended
 class Compearison:
 
-    def __init__(self, dirs_to_compare, dir_names, should_include, add_ignore):
+    def __init__(self, dirs_to_compare: List[str], dir_names: List[str],
+                 should_include: Callable[[str], bool], add_ignore: Callable[[str], None]):
+
         self.dirs_to_compare = dirs_to_compare
         self.add_ignore = add_ignore
         self.dir_names = dir_names
@@ -85,7 +89,7 @@ class Compearison:
 
         self.compare('.', self.root)
 
-    def compare(self, name, node):
+    def compare(self, name: str, node: TreeNode):
         node.path = name
 
         for i in range(0, len(self.dirs_to_compare)):
@@ -104,7 +108,7 @@ class Compearison:
                 node.actions += [('Delete-' + side_has, ['rm', '-rv', pa_has])]
                 node.actions += [('View', ['cat', pa_has])]
 
-        if node.isDir:
+        if isinstance(node, TreeDir):
             for mp in [node.subdirs, node.files]:
                 for sn, info in mp.items():
                     self.compare(name + '/' + sn, info)
@@ -113,7 +117,7 @@ class Compearison:
         else:
             if not node.differences:
 
-                def compareattrs(getter):
+                def compareattrs(getter: Callable[[str], Any]):
                     val = None
                     for pp in path_per_cd(name, self.dirs_to_compare):
                         cv = getter(pp)
