@@ -25,8 +25,9 @@ def navigate_list(lyst: List[T], cur: T, direction: int):
 
 class ApplePearTUI:
 
-    def __init__(self, compare_dirs_: List[str], compare_dir_names_: List[str],
-                 should_include_: Callable[[str], bool], path_shortcuts_, add_ignore_: Callable[[str], None]):
+    def __init__(self, compare_dirs_: List[dirdiff.FilePath], compare_dir_names_: List[str],
+                 should_include_: Callable[[dirdiff.AbstractPath], bool], path_shortcuts_,
+                 add_ignore_: Callable[[dirdiff.AbstractPath], None]):
 
         self.compareDirs = compare_dirs_
         self.compareDirNames = compare_dir_names_

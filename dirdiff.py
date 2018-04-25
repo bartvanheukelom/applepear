@@ -1,13 +1,17 @@
 import os
 import hashlib
 
-from typing import List, Callable, Set, Dict, Any, Tuple
+from typing import List, Callable, Set, Dict, Any, Tuple, NewType
+
+AbstractPath = NewType('AbstractPath', str)
+Difference = NewType('Difference', str)
+FilePath = NewType('FilePath', str)
 
 
 class TreeNode:
     def __init__(self):
-        self.path: str = None
-        self.differences: Set[str] = set()
+        self.path: AbstractPath = None
+        self.differences: Set[Difference] = set()
         self.existsIn: Set[int] = set()
 
         # TODO actions probably belong in dirdiffgui
@@ -26,20 +30,21 @@ class TreeFile(TreeNode):
         super().__init__()
 
 
-def path_per_cd(name: str, dirs: List[str]) -> List[str]:
-    return [cd + '/' + name for cd in dirs]
+def path_per_cd(name: AbstractPath, dirs: List[FilePath]) -> List[FilePath]:
+    return [FilePath(d + '/' + name) for d in dirs]
 
 
-def hashfiles(files: List[str]) -> str:
+def hashfiles(files: List[FilePath]) -> str:
     h = hashlib.sha256()
     for file in files:
-        with open(file, 'rb', buffering=0) as f:
-            for b in iter(lambda: f.read(128 * 1024), b''):
-                h.update(b)
+        if os.path.exists(file):
+            with open(file, 'rb', buffering=0) as f:
+                for b in iter(lambda: f.read(128 * 1024), b''):
+                    h.update(b)
     return h.hexdigest()
 
 
-def getcontents(fn: str) -> bytes:
+def getcontents(fn: FilePath) -> bytes:
     with open(fn, 'rb') as of:
         return of.read()
 
@@ -47,8 +52,8 @@ def getcontents(fn: str) -> bytes:
 # the typo is intended
 class Compearison:
 
-    def __init__(self, dirs_to_compare: List[str], dir_names: List[str],
-                 should_include: Callable[[str], bool], add_ignore: Callable[[str], None]):
+    def __init__(self, dirs_to_compare: List[FilePath], dir_names: List[str],
+                 should_include: Callable[[AbstractPath], bool], add_ignore: Callable[[AbstractPath], None]):
 
         self.dirs_to_compare = dirs_to_compare
         self.add_ignore = add_ignore
@@ -64,7 +69,7 @@ class Compearison:
 
             for f in os.walk(base, True):
                 path, subdirs, files = f
-                rel_path = path[len(base) + 1:]
+                rel_path = AbstractPath(path[len(base) + 1:])
 
                 if not should_include(rel_path):
                     subdirs.clear()
@@ -81,20 +86,20 @@ class Compearison:
                         fp = sf
                     else:
                         fp = rel_path + '/' + sf
-                    if not should_include(fp):
+                    if not should_include(AbstractPath(fp)):
                         continue
 
                     file = node.files.get(sf) or node.files.setdefault(sf, TreeFile())
                     file.existsIn.add(i)
 
-        self.compare('.', self.root)
+        self.compare(AbstractPath('.'), self.root)
 
-    def compare(self, name: str, node: TreeNode):
+    def compare(self, name: AbstractPath, node: TreeNode):
         node.path = name
 
         for i in range(0, len(self.dirs_to_compare)):
             if i not in node.existsIn:
-                node.differences.add('missing_' + self.dir_names[i])
+                node.differences.add(Difference('missing_' + self.dir_names[i]))
 
                 side_has = self.dir_names[(i + 1) % 2]
                 side_missing = self.dir_names[i]
@@ -111,9 +116,9 @@ class Compearison:
         if isinstance(node, TreeDir):
             for mp in [node.subdirs, node.files]:
                 for sn, info in mp.items():
-                    self.compare(name + '/' + sn, info)
+                    self.compare(AbstractPath(name + '/' + sn), info)
                     if info.differences:
-                        node.differences.add('sub')
+                        node.differences.add(Difference('sub'))
         else:
             if not node.differences:
 
@@ -127,9 +132,9 @@ class Compearison:
                             return True
 
                 if compareattrs(lambda fn: os.stat(fn).st_size):
-                    node.differences.add('size')
+                    node.differences.add(Difference('size'))
                 elif compareattrs(getcontents):
-                    node.differences.add('content')
+                    node.differences.add(Difference('content'))
 
                 if node.differences:
                     p = path_per_cd(name, self.dirs_to_compare)
