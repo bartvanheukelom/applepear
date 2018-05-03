@@ -104,13 +104,22 @@ class Compearison:
                 side_has = self.dir_names[(i + 1) % 2]
                 side_missing = self.dir_names[i]
 
-                p = path_per_cd(name, self.dirs_to_compare)
+                pa_left, pa_right = path_per_cd(name, self.dirs_to_compare)
                 if i == 0:
-                    p = list(reversed(p))
-                pa_has, pa_missing = p
+                    # missing left
+                    pa_has = pa_right
+                    node.actions += [('Left=delete-' + side_has,
+                                      ['rm', '-rv', pa_right])]
+                    node.actions += [('Right=copy-' + side_has + '-to-' + side_missing,
+                                      ['cp', '-rv', pa_right, pa_left])]
+                elif i == 1:
+                    # missing right
+                    pa_has = pa_left
+                    node.actions += [('Left=copy-' + side_has + '-to-' + side_missing,
+                                      ['cp', '-rv', pa_left, pa_right])]
+                    node.actions += [('Right=delete-' + side_has,
+                                      ['rm', '-rv', pa_left])]
 
-                node.actions += [('Copy-' + side_has + '-to-' + side_missing, ['cp', '-rv', pa_has, pa_missing])]
-                node.actions += [('Delete-' + side_has, ['rm', '-rv', pa_has])]
                 node.actions += [('View', ['cat', pa_has])]
 
         if isinstance(node, TreeDir):
