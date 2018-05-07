@@ -1,6 +1,6 @@
 # coding=utf-8
 
-from typing import List, Optional, TypeVar, Callable
+from typing import List, Optional, TypeVar, Callable, Tuple
 import subprocess
 import dirdiff
 import curses
@@ -25,19 +25,27 @@ def navigate_list(lyst: List[T], cur: T, direction: int):
 
 class ApplePearTUI:
 
-    def __init__(self, compare_dirs_: List[dirdiff.FilePath], compare_dir_names_: List[str],
+    def __init__(self, basedir: dirdiff.FilePath, dirs_to_compare: List[Tuple[str, dirdiff.FilePath]],
                  should_include_: Callable[[dirdiff.AbstractPath], bool], path_shortcuts_,
                  add_ignore_: Callable[[dirdiff.AbstractPath], None]):
 
-        self.compareDirs = compare_dirs_
-        self.compareDirNames = compare_dir_names_
+        self.basedir = basedir
+        self.dirs_to_compare = dirs_to_compare
+    
+        # TODO replace
+        self.compareDirNames = [n for n, p in dirs_to_compare]
+        self.compareDirs = [basedir + '/' + p for n, p in dirs_to_compare]
+
         self.shouldInclude = should_include_
         self.path_shortcuts = path_shortcuts_
         self.add_ignore = add_ignore_
 
+        # state
         self.selected_line: Optional[Line] = None
         self.lines: List[Line] = []
         self.temp_status_bar: str = None
+
+    def run(self):
 
         self.compare()
         while True:
@@ -45,6 +53,9 @@ class ApplePearTUI:
             intermezzo = curses.wrapper(self.cursesloop)
             if not intermezzo: break
             intermezzo()
+
+    def path_per_cd(self, rp: dirdiff.AbstractPath) -> List[dirdiff.FilePath]:
+        return dirdiff.path_per_cd(rp, self.compareDirs)
 
     def flatten(self, prefix: str, name: str, info: dirdiff.TreeNode, depth=0):
 
@@ -105,6 +116,14 @@ class ApplePearTUI:
 
             # ==== RENDER ==== #
 
+            # header
+            header = self.basedir + ':  ' + ' vs '.join([
+                p + ' (' + n + ')'
+                for n, p in self.dirs_to_compare
+            ])
+            hexes.fill_line(win, 0, 0, width, curses.A_REVERSE)
+            win.addnstr(0, 0, header, width, curses.A_REVERSE)
+
             # list of differences #
             def render_line(y: int, l: Line, is_sel: bool):
 
@@ -115,7 +134,7 @@ class ApplePearTUI:
                 win.addnstr(y, 0, l.displayname + ' ', width, attr)
                 win.addnstr(y, width - 21, (' ' + ','.join(l.info.differences) + ' ').rjust(20, linechar), 20, attr)
 
-            iutil.render_list(win, self.lines, self.selected_line, 0, height - 2, width, render_line)
+            iutil.render_list(win, self.lines, self.selected_line, 1, height - 3, width, render_line)
 
             # status bar / legend #
             if self.temp_status_bar:

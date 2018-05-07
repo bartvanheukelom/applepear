@@ -99,10 +99,9 @@ class Compearison:
 
         for i in range(0, len(self.dirs_to_compare)):
             if i not in node.existsIn:
-                node.differences.add(Difference('missing_' + self.dir_names[i]))
-
                 side_has = self.dir_names[(i + 1) % 2]
                 side_missing = self.dir_names[i]
+                node.differences.add(Difference('only-in-' + side_has))
 
                 pa_left, pa_right = path_per_cd(name, self.dirs_to_compare)
                 if i == 0:
